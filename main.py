@@ -51,8 +51,8 @@ def signup():
             st.error(f"Registration failed: {e}")
 
 def main_menu():
-    st.sidebar.title("Menu")
-    choice = st.sidebar.radio("Go to", ["Dashboard", "Leaderboard", "Logout"])
+    with st.sidebar.expander("🏆 Leaderboard", expanded=False):
+    show_leaderboard()
 
     if choice == "Dashboard":
         show_dashboard(st.session_state.user_id)
