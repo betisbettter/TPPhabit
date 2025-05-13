@@ -105,14 +105,20 @@ def show_dashboard(user_id):
     st.markdown(f"### Day {day_of_challenge}: {selected_date.strftime('%B %d, %Y')}")
     st.markdown("Check off the habits you completed:")
 
+    # Get any existing logged habits for the selected date
     existing_df = get_user_progress(user_id)
     existing_entry = existing_df[existing_df["Date"] == pd.to_datetime(selected_date)]
 
+    already_logged = []
+    if not existing_entry.empty:
+        already_logged = existing_entry.iloc[0]["Completed Habits"] or []
+
     completed = []
     for habit in habits_for_day:
-        default = habit in (existing_entry["Completed Habits"].iloc[0] if not existing_entry.empty else [])
-        if st.checkbox(habit, value=default, key=f"{selected_date}-{habit}"):
+        is_checked = habit in already_logged
+        if st.checkbox(habit, value=is_checked, key=f"{selected_date}-{habit}"):
             completed.append(habit)
+
 
     if st.button("Save Habits"):
         save_user_habits(user_id, selected_date, completed)
