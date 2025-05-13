@@ -3,6 +3,7 @@ from auth import register_user, check_password, hash_password
 from db import get_connection
 from dashboard import show_dashboard
 from leaderboard import show_leaderboard
+from PIL import Image
 
 st.set_page_config(page_title="30-Day Habit Challenge", layout="centered")
 
@@ -64,7 +65,18 @@ def main_menu():
         st.rerun()
 
 def main():
-    st.title("🏋️ 30-Day Habit Challenge App")
+  
+
+    # Load the image (assuming it's a PNG in your repo)
+    logo = Image.open("TPPHABIT.png")
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.image(logo, use_column_width=True)
+    with col2:
+        st.markdown(
+            "<h1 style='color:darkgreen;'>RELENTL45S</h1>",
+            unsafe_allow_html=True
+        )
 
     if st.session_state.logged_in:
         main_menu()
