@@ -61,7 +61,7 @@ def main_menu():
         st.session_state.logged_in = False
         st.session_state.user_id = None
         st.session_state.username = ""
-        st.experimental_rerun()
+        st.rerun()
 
 def main():
     st.title("🏋️ 30-Day Habit Challenge App")
