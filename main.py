@@ -5,7 +5,7 @@ from dashboard import show_dashboard
 from leaderboard import show_leaderboard
 from PIL import Image
 
-st.set_page_config(page_title="30-Day Habit Challenge", layout="centered")
+st.set_page_config(page_title="RELENTL45S", layout="centered")
 
 # Initialize session state
 if "logged_in" not in st.session_state:
