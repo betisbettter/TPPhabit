@@ -70,17 +70,18 @@ def get_weekday_heatmap_data(user_id):
 
     num_days = (CHALLENGE_END - CHALLENGE_START).days + 1
     data_matrix = np.full((7, 7), np.nan)
-    date_labels = [[None for _ in range(7)] for _ in range(7)]
+    annot_matrix = [["" for _ in range(7)] for _ in range(7)]
 
     for i in range(num_days):
         d = CHALLENGE_START + timedelta(days=i)
         week_idx = (d - CHALLENGE_START).days // 7
-        day_idx = (d.weekday() + 1) % 7  # Saturday = 0
+        day_idx = (d.weekday() + 2) % 7  # ✅ Saturday = 0
+
         pct = completion_by_date.get(d, 0.0)
         data_matrix[week_idx][day_idx] = pct
-        date_labels[week_idx][day_idx] = d.strftime("%m/%d")
+        annot_matrix[week_idx][day_idx] = f"{d.strftime('%m/%d')}\n{int(pct*100)}%"
 
-    return data_matrix, date_labels
+    return data_matrix, annot_matrix
 
 # Main dashboard view
 def show_dashboard(user_id):
@@ -124,13 +125,13 @@ def show_dashboard(user_id):
     # Heatmap Calendar
     st.markdown("### 📅 Daily Completion Calendar")
 
-    data_matrix, date_labels = get_weekday_heatmap_data(user_id)
+    data_matrix, annot_matrix = get_weekday_heatmap_data(user_id)
 
     fig, ax = plt.subplots(figsize=(12, 5))
     sns.heatmap(
         data_matrix,
         cmap="YlGn",
-        annot=[[f"{int(p*100)}%" if not np.isnan(p) else "" for p in row] for row in data_matrix],
+        annot=annot_matrix,
         fmt="",
         cbar=True,
         linewidths=0.5,
@@ -140,8 +141,9 @@ def show_dashboard(user_id):
         ax=ax
     )
 
-    ax.set_title("Your Daily Completion Rate")
+    ax.set_title("Your Daily Completion Calendar (Date & %)")
     st.pyplot(fig)
+
 
     # Historical Log Table
     st.markdown("### 🗂️ Habit Log History")
