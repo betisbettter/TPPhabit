@@ -60,14 +60,7 @@ def main_menu():
 
 def main():
   
-
-    # Load the image (assuming it's a PNG in your repo)
-
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        st.image("image.png", use_container_width=True)
-    with col2:
-        st.markdown(
+    st.markdown(
             """
             <div style='display: flex; align-items: center; height: 100%;'>
                 <h1 style='color:darkgreen;'>RELENTL45S</h1>
@@ -75,6 +68,8 @@ def main():
             """,
             unsafe_allow_html=True
         )
+    
+    st.image("image.png", use_container_width=True)
 
     if st.session_state.logged_in:
         main_menu()
