@@ -63,7 +63,7 @@ def main():
     st.markdown(
             """
             <div style='display: flex; align-items: center; height: 100%;'>
-                <h1 style='color:green;'>RELENTL45S</h1>
+                <h1 style='color:MediumSeaGreen;'>RELENTL45S</h1>
             </div>
             """,
             unsafe_allow_html=True
