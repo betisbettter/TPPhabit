@@ -39,11 +39,16 @@ def calculate_adherence(df):
         else:
             challenge_date = raw_date
 
+        # Skip future days
+        if challenge_date > date.today():
+            continue
+
         day_number = (challenge_date - CHALLENGE_START).days + 1
         total_possible += day_number
         total_completed += len(row["Completed Habits"])
 
     return total_completed, total_possible
+
 
 # Create calendar heatmap data
 def get_daily_completion_df(user_id):
@@ -58,19 +63,21 @@ def get_daily_completion_df(user_id):
     completion_by_date = {}
 
     for log_date, completed_habits in data:
-        day_num = (log_date - CHALLENGE_START).days + 1
-        if 1 <= day_num <= 45:
+        if CHALLENGE_START <= log_date <= CHALLENGE_END:
+            day_num = (log_date - CHALLENGE_START).days + 1
             expected_count = day_num
             completion_rate = len(completed_habits) / expected_count
             completion_by_date[log_date] = completion_rate
 
-    all_days = pd.date_range(CHALLENGE_START, min(date.today(), CHALLENGE_END))
-    calendar_df = pd.Series({
-        d: completion_by_date.get(d.date(), 0.0)
-        for d in all_days
+    # Build calendar series with 0% for missing days
+    full_range = pd.date_range(CHALLENGE_START, CHALLENGE_END)
+    calendar_series = pd.Series({
+        d.date(): completion_by_date.get(d.date(), 0.0)
+        for d in full_range
     })
 
-    return calendar_df
+    return calendar_series
+
 
 # Main dashboard view
 def show_dashboard(user_id):
@@ -133,7 +140,9 @@ def show_dashboard(user_id):
         st.info("No logs yet. Start submitting habits!")
 
     # Calendar Heatmap
+    # Calendar Heatmap
     st.markdown("### 📅 Daily Completion Calendar")
+
     calendar_series = get_daily_completion_df(user_id)
 
     fig_cal, ax_cal = calplot.calplot(
@@ -143,10 +152,17 @@ def show_dashboard(user_id):
         colorbar=True,
         edgecolor="white",
         linewidth=1,
-        textformat="{:.0%}"
+        textformat="{:.0%}",
+        how="sum",
+        yearlabels=False,
+        monthlabels=("May", "June"),
+        daylabels="MTWTFSS",
+        figsize=(14, 3),
+        tight_layout=True
     )
 
     st.pyplot(fig_cal)
+
 
     # Historical Log Table
     st.markdown("### 🗂️ Habit Log History")
