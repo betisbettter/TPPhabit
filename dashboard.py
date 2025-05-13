@@ -1,10 +1,12 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 from datetime import datetime, date
 from db import get_connection
 from habit_logic import get_habits_for_date, total_days, CHALLENGE_START, CHALLENGE_END
-import matplotlib.pyplot as plt
+import calplot
 
+# Load user progress
 def get_user_progress(user_id):
     conn = get_connection()
     with conn.cursor() as cur:
@@ -12,6 +14,7 @@ def get_user_progress(user_id):
         rows = cur.fetchall()
     return pd.DataFrame(rows, columns=["Date", "Completed Habits"])
 
+# Save progress to DB
 def save_user_habits(user_id, target_date, completed_habits):
     conn = get_connection()
     with conn.cursor() as cur:
@@ -22,21 +25,19 @@ def save_user_habits(user_id, target_date, completed_habits):
         """, (user_id, target_date, completed_habits))
         conn.commit()
 
-from datetime import datetime
-
+# Calculate adherence stats
 def calculate_adherence(df):
     total_possible = 0
     total_completed = 0
 
     for _, row in df.iterrows():
         raw_date = row["Date"]
-        # Ensure date is a Python date object
         if isinstance(raw_date, str):
             challenge_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
         elif isinstance(raw_date, pd.Timestamp):
             challenge_date = raw_date.date()
         else:
-            challenge_date = raw_date  # already a date
+            challenge_date = raw_date
 
         day_number = (challenge_date - CHALLENGE_START).days + 1
         total_possible += day_number
@@ -44,7 +45,34 @@ def calculate_adherence(df):
 
     return total_completed, total_possible
 
+# Create calendar heatmap data
+def get_daily_completion_df(user_id):
+    conn = get_connection()
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT date, completed_habits FROM habit_logs
+            WHERE user_id = %s ORDER BY date ASC
+        """, (user_id,))
+        data = cur.fetchall()
 
+    completion_by_date = {}
+
+    for log_date, completed_habits in data:
+        day_num = (log_date - CHALLENGE_START).days + 1
+        if 1 <= day_num <= 45:
+            expected_count = day_num
+            completion_rate = len(completed_habits) / expected_count
+            completion_by_date[log_date] = completion_rate
+
+    all_days = pd.date_range(CHALLENGE_START, min(date.today(), CHALLENGE_END))
+    calendar_df = pd.Series({
+        d: completion_by_date.get(d.date(), 0.0)
+        for d in all_days
+    })
+
+    return calendar_df
+
+# Main dashboard view
 def show_dashboard(user_id):
     st.subheader("📆 Your Daily Habit Tracker")
 
@@ -53,28 +81,36 @@ def show_dashboard(user_id):
         st.warning("This challenge is not currently active.")
         return
 
-    day_of_challenge = (today - CHALLENGE_START).days + 1
-    today_habits = get_habits_for_date(today)
+    # Date selector
+    selected_date = st.date_input(
+        "Select a date to view or update habits:",
+        min_value=CHALLENGE_START,
+        max_value=min(today, CHALLENGE_END),
+        value=today
+    )
 
-    st.markdown(f"### Day {day_of_challenge}: {today.strftime('%B %d, %Y')}")
-    st.markdown("Check off the habits you completed today:")
+    day_of_challenge = (selected_date - CHALLENGE_START).days + 1
+    habits_for_day = get_habits_for_date(selected_date)
 
-    # Get current data
+    st.markdown(f"### Day {day_of_challenge}: {selected_date.strftime('%B %d, %Y')}")
+    st.markdown("Check off the habits you completed:")
+
+    # Load habit log for selected day
     existing_df = get_user_progress(user_id)
-    existing_today = existing_df[existing_df["Date"] == pd.to_datetime(today)]
+    existing_entry = existing_df[existing_df["Date"] == pd.to_datetime(selected_date)]
 
-    completed_today = []
-    for habit in today_habits:
-        default = habit in (existing_today["Completed Habits"].iloc[0] if not existing_today.empty else [])
-        if st.checkbox(habit, value=default, key=habit):
-            completed_today.append(habit)
+    completed = []
+    for habit in habits_for_day:
+        default = habit in (existing_entry["Completed Habits"].iloc[0] if not existing_entry.empty else [])
+        if st.checkbox(habit, value=default, key=f"{selected_date}-{habit}"):
+            completed.append(habit)
 
-    if st.button("Submit Today's Habits"):
-        save_user_habits(user_id, today, completed_today)
+    if st.button("Save Habits"):
+        save_user_habits(user_id, selected_date, completed)
         st.success("Habits saved!")
-        st.experimental_rerun()
+        st.rerun()
 
-    # Display Adherence Pie Chart
+    # Pie Chart for adherence
     st.markdown("---")
     st.markdown("### 📊 Your Progress So Far")
     full_df = get_user_progress(user_id)
@@ -94,10 +130,10 @@ def show_dashboard(user_id):
 
         st.markdown(f"**{total_completed} / {total_possible} habits completed** ({percent}%)")
     else:
-        st.info("No habits logged yet. Start by submitting today's habits above.")
+        st.info("No logs yet. Start submitting habits!")
 
+    # Calendar Heatmap
     st.markdown("### 📅 Daily Completion Calendar")
-
     calendar_series = get_daily_completion_df(user_id)
 
     fig_cal, ax_cal = calplot.calplot(
@@ -112,15 +148,9 @@ def show_dashboard(user_id):
 
     st.pyplot(fig_cal)
 
-
-
-
-    # Show historical logs
+    # Historical Log Table
     st.markdown("### 🗂️ Habit Log History")
     if not full_df.empty:
         st.dataframe(full_df[::-1], use_container_width=True)
     else:
         st.write("No habit logs yet.")
-
-
-
