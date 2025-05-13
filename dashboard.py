@@ -149,3 +149,13 @@ def show_dashboard(user_id):
         st.dataframe(full_df[::-1], use_container_width=True)
     else:
         st.write("No habit logs yet.")
+
+
+    # Logout Button
+    st.markdown("---")
+    if st.button("🚪 Logout"):
+        st.session_state.logged_in = False
+        st.session_state.user_id = None
+        st.session_state.username = ""
+        st.rerun()
+    

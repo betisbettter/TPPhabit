@@ -54,15 +54,7 @@ def main_menu():
     with st.sidebar.expander("🏆 Leaderboard", expanded=False):
         show_leaderboard()
 
-    if choice == "Dashboard":
-        show_dashboard(st.session_state.user_id)
-    elif choice == "Leaderboard":
-        show_leaderboard()
-    elif choice == "Logout":
-        st.session_state.logged_in = False
-        st.session_state.user_id = None
-        st.session_state.username = ""
-        st.rerun()
+    show_dashboard(st.session_state.user_id)
 
 def main():
   
