@@ -22,17 +22,28 @@ def save_user_habits(user_id, target_date, completed_habits):
         """, (user_id, target_date, completed_habits))
         conn.commit()
 
+from datetime import datetime
+
 def calculate_adherence(df):
-    """Calculate actual vs. expected completions"""
     total_possible = 0
     total_completed = 0
 
     for _, row in df.iterrows():
-        day_number = (row["Date"].date() - CHALLENGE_START).days + 1
+        raw_date = row["Date"]
+        # Ensure date is a Python date object
+        if isinstance(raw_date, str):
+            challenge_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+        elif isinstance(raw_date, pd.Timestamp):
+            challenge_date = raw_date.date()
+        else:
+            challenge_date = raw_date  # already a date
+
+        day_number = (challenge_date - CHALLENGE_START).days + 1
         total_possible += day_number
         total_completed += len(row["Completed Habits"])
-    
+
     return total_completed, total_possible
+
 
 def show_dashboard(user_id):
     st.subheader("📆 Your Daily Habit Tracker")
