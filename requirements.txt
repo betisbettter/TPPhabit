@@ -1,0 +1,5 @@
+streamlit
+bcrypt
+psycopg2-binary
+matplotlib
+pandas
