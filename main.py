@@ -36,6 +36,74 @@ def login():
         else:
             st.error("Invalid username or password")
 
+    # --- Forgot Password Flow ---
+    with st.expander("Forgot Password?"):
+        recovery_user = st.text_input("Enter your username to recover password", key="recovery_username")
+
+        if st.button("Start Recovery"):
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT recovery_question FROM users WHERE username = %s", (recovery_user,))
+            result = cur.fetchone()
+            conn.close()
+
+            if result:
+                st.session_state.recovery_user = recovery_user
+                st.session_state.recovery_question = result[0]
+                st.session_state.recovery_mode = True
+                st.rerun()
+            else:
+                st.error("Username not found.")
+
+    # Step 2: Answer recovery question
+    if st.session_state.get("recovery_mode") and st.session_state.get("recovery_user"):
+        st.info(f"Recovery Question: {st.session_state.recovery_question}")
+        recovery_answer = st.text_input("Answer to recovery question", type="password", key="recovery_answer")
+
+        if st.button("Verify Recovery Answer"):
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id FROM users
+                WHERE username = %s AND recovery_answer = %s
+            """, (st.session_state.recovery_user, recovery_answer))
+            result = cur.fetchone()
+            conn.close()
+
+            if result:
+                st.session_state.recovery_verified = True
+                st.success("Recovery answer verified. Please set a new password.")
+                st.rerun()
+            else:
+                st.error("Incorrect answer to recovery question.")
+
+    # Step 3: Let user reset password
+    if st.session_state.get("recovery_verified"):
+        new_password = st.text_input("Enter new password", type="password")
+        confirm_password = st.text_input("Confirm new password", type="password")
+
+        if st.button("Reset Password"):
+            if new_password != confirm_password:
+                st.error("Passwords do not match.")
+            elif len(new_password) < 4:
+                st.warning("Password should be at least 4 characters.")
+            else:
+                conn = get_connection()
+                cur = conn.cursor()
+                cur.execute("""
+                    UPDATE users
+                    SET password_hash = %s
+                    WHERE username = %s
+                """, (hash_password(new_password), st.session_state.recovery_user))
+                conn.commit()
+                conn.close()
+
+                # Clear recovery state
+                st.session_state.recovery_mode = False
+                st.session_state.recovery_verified = False
+                st.success("Password reset successfully! You can now log in.")
+
+
 def signup():
     st.header("Sign Up")
     username = st.text_input("Create Username")
