@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-from datetime import datetime, date
+import seaborn as sns
+from datetime import datetime, date, timedelta
 from db import get_connection
 from habit_logic import get_habits_for_date, total_days, CHALLENGE_START, CHALLENGE_END
-import calplot
 
 # Load user progress
 def get_user_progress(user_id):
@@ -49,9 +50,8 @@ def calculate_adherence(df):
 
     return total_completed, total_possible
 
-
-# Create calendar heatmap data
-def get_daily_completion_df(user_id):
+# Build data matrix for calendar heatmap
+def get_weekday_heatmap_data(user_id):
     conn = get_connection()
     with conn.cursor() as cur:
         cur.execute("""
@@ -61,23 +61,26 @@ def get_daily_completion_df(user_id):
         data = cur.fetchall()
 
     completion_by_date = {}
-
     for log_date, completed_habits in data:
         if CHALLENGE_START <= log_date <= CHALLENGE_END:
             day_num = (log_date - CHALLENGE_START).days + 1
-            expected_count = day_num
-            completion_rate = len(completed_habits) / expected_count
-            completion_by_date[log_date] = completion_rate
+            expected = day_num
+            pct = len(completed_habits) / expected if expected > 0 else 0
+            completion_by_date[log_date] = pct
 
-    # Build calendar series with 0% for missing days
-    full_range = pd.date_range(CHALLENGE_START, CHALLENGE_END)
-    calendar_series = pd.Series({
-        d.date(): completion_by_date.get(d.date(), 0.0)
-        for d in full_range
-    })
+    num_days = (CHALLENGE_END - CHALLENGE_START).days + 1
+    data_matrix = np.full((7, 7), np.nan)
+    date_labels = [[None for _ in range(7)] for _ in range(7)]
 
-    return calendar_series
+    for i in range(num_days):
+        d = CHALLENGE_START + timedelta(days=i)
+        week_idx = (d - CHALLENGE_START).days // 7
+        day_idx = (d.weekday() + 1) % 7  # Saturday = 0
+        pct = completion_by_date.get(d, 0.0)
+        data_matrix[week_idx][day_idx] = pct
+        date_labels[week_idx][day_idx] = d.strftime("%m/%d")
 
+    return data_matrix, date_labels
 
 # Main dashboard view
 def show_dashboard(user_id):
@@ -88,7 +91,6 @@ def show_dashboard(user_id):
         st.warning("This challenge is not currently active.")
         return
 
-    # Date selector
     selected_date = st.date_input(
         "Select a date to view or update habits:",
         min_value=CHALLENGE_START,
@@ -102,7 +104,6 @@ def show_dashboard(user_id):
     st.markdown(f"### Day {day_of_challenge}: {selected_date.strftime('%B %d, %Y')}")
     st.markdown("Check off the habits you completed:")
 
-    # Load habit log for selected day
     existing_df = get_user_progress(user_id)
     existing_entry = existing_df[existing_df["Date"] == pd.to_datetime(selected_date)]
 
@@ -117,7 +118,7 @@ def show_dashboard(user_id):
         st.success("Habits saved!")
         st.rerun()
 
-    # Pie Chart for adherence
+    # Pie Chart
     st.markdown("---")
     st.markdown("### 📊 Your Progress So Far")
     full_df = get_user_progress(user_id)
@@ -139,34 +140,27 @@ def show_dashboard(user_id):
     else:
         st.info("No logs yet. Start submitting habits!")
 
-    # Calendar Heatmap
-    # Calendar Heatmap
+    # Heatmap Calendar
     st.markdown("### 📅 Daily Completion Calendar")
 
-    calendar_series = get_daily_completion_df(user_id)
+    data_matrix, date_labels = get_weekday_heatmap_data(user_id)
 
-    # Ensure index is datetime64[ns] (required by calplot)
-    calendar_series.index = pd.to_datetime(calendar_series.index)
-
-    fig_cal, ax_cal = calplot.calplot(
-        calendar_series,
+    fig, ax = plt.subplots(figsize=(12, 5))
+    sns.heatmap(
+        data_matrix,
         cmap="YlGn",
-        suptitle="Your Daily Completion Rates",
-        colorbar=True,
-        edgecolor="white",
-        linewidth=1,
-        textformat="{:.0%}",
-        how="sum",
-        yearlabels=False,
-        monthlabels=("May", "June"),
-        daylabels="MTWTFSS",
-        tight_layout=True,
-        figsize=(14, 3)
+        annot=[[f"{int(p*100)}%" if not np.isnan(p) else "" for p in row] for row in data_matrix],
+        fmt="",
+        cbar=True,
+        linewidths=0.5,
+        linecolor='gray',
+        xticklabels=["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"],
+        yticklabels=[f"Week {i+1}" for i in range(7)],
+        ax=ax
     )
 
-    st.pyplot(fig_cal)
-
-
+    ax.set_title("Your Daily Completion Rate")
+    st.pyplot(fig)
 
     # Historical Log Table
     st.markdown("### 🗂️ Habit Log History")
