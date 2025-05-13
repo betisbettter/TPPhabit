@@ -96,9 +96,31 @@ def show_dashboard(user_id):
     else:
         st.info("No habits logged yet. Start by submitting today's habits above.")
 
+    st.markdown("### 📅 Daily Completion Calendar")
+
+    calendar_series = get_daily_completion_df(user_id)
+
+    fig_cal, ax_cal = calplot.calplot(
+        calendar_series,
+        cmap="YlGn",
+        suptitle="Your Daily Completion Rates",
+        colorbar=True,
+        edgecolor="white",
+        linewidth=1,
+        textformat="{:.0%}"
+    )
+
+    st.pyplot(fig_cal)
+
+
+
+
     # Show historical logs
     st.markdown("### 🗂️ Habit Log History")
     if not full_df.empty:
         st.dataframe(full_df[::-1], use_container_width=True)
     else:
         st.write("No habit logs yet.")
+
+
+
