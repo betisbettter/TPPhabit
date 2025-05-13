@@ -118,6 +118,9 @@ def show_dashboard(user_id):
         st.success("Habits saved!")
         st.rerun()
 
+    full_df = get_user_progress(user_id)
+
+
     # Heatmap Calendar
     st.markdown("### 📅 Daily Completion Calendar")
 
