@@ -73,14 +73,14 @@ def main():
     with col1:
         st.image(logo, use_column_width=True)
     with col2:
-    st.markdown(
-        """
-        <div style='display: flex; align-items: center; height: 100%;'>
-            <h1 style='color:darkgreen;'>RELENTL45S</h1>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        st.markdown(
+            """
+            <div style='display: flex; align-items: center; height: 100%;'>
+                <h1 style='color:darkgreen;'>RELENTL45S</h1>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     if st.session_state.logged_in:
         main_menu()
