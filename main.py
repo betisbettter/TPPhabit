@@ -52,7 +52,7 @@ def signup():
 
 def main_menu():
     with st.sidebar.expander("🏆 Leaderboard", expanded=False):
-    show_leaderboard()
+        show_leaderboard()
 
     if choice == "Dashboard":
         show_dashboard(st.session_state.user_id)
