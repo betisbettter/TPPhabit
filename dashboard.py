@@ -107,16 +107,21 @@ def show_dashboard(user_id):
 
     # Get any existing logged habits for the selected date
     existing_df = get_user_progress(user_id)
-    existing_entry = existing_df[existing_df["Date"] == pd.to_datetime(selected_date)]
+    # Convert all dates in the DataFrame to just date (no time)
+    existing_df["Date"] = pd.to_datetime(existing_df["Date"]).dt.date
+
+    # Extract habits already logged for the selected date
+    existing_entry = existing_df[existing_df["Date"] == selected_date]
 
     already_logged = []
-    if not existing_entry.empty:
-        already_logged = existing_entry.iloc[0]["Completed Habits"] or []
+    if not existing_entry.empty and isinstance(existing_entry.iloc[0]["Completed Habits"], list):
+        already_logged = existing_entry.iloc[0]["Completed Habits"]
 
+    # Show checkboxes with already logged ones pre-checked
     completed = []
     for habit in habits_for_day:
-        is_checked = habit in already_logged
-        if st.checkbox(habit, value=is_checked, key=f"{selected_date}-{habit}"):
+        default = habit in already_logged
+        if st.checkbox(habit, value=default, key=f"{selected_date}-{habit}"):
             completed.append(habit)
 
 
