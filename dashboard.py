@@ -84,7 +84,7 @@ def get_weekday_heatmap_data(user_id):
 
 # Main dashboard view
 def show_dashboard(user_id):
-    st.subheader("📆 Your Daily Habit Tracker")
+    st.subheader("🏋️ Your Daily Habit Tracker")
 
     today = date.today()
     if today < CHALLENGE_START or today > CHALLENGE_END:
