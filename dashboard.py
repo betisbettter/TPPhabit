@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from db import get_connection
-from habit_logic import get_habits_for_day
+from habit_logic import get_habits_for_date, total_days, CHALLENGE_START, CHALLENGE_END
+import matplotlib.pyplot as plt
 
 def get_user_progress(user_id):
     conn = get_connection()
@@ -11,55 +12,82 @@ def get_user_progress(user_id):
         rows = cur.fetchall()
     return pd.DataFrame(rows, columns=["Date", "Completed Habits"])
 
-def save_user_habits(user_id, date, completed_habits):
+def save_user_habits(user_id, target_date, completed_habits):
     conn = get_connection()
     with conn.cursor() as cur:
         cur.execute("""
             INSERT INTO habit_logs (user_id, date, completed_habits)
             VALUES (%s, %s, %s)
             ON CONFLICT (user_id, date) DO UPDATE SET completed_habits = EXCLUDED.completed_habits
-        """, (user_id, date, completed_habits))
+        """, (user_id, target_date, completed_habits))
         conn.commit()
+
+def calculate_adherence(df):
+    """Calculate actual vs. expected completions"""
+    total_possible = 0
+    total_completed = 0
+
+    for _, row in df.iterrows():
+        day_number = (row["Date"].date() - CHALLENGE_START).days + 1
+        total_possible += day_number
+        total_completed += len(row["Completed Habits"])
+    
+    return total_completed, total_possible
 
 def show_dashboard(user_id):
     st.subheader("📆 Your Daily Habit Tracker")
 
-    today = datetime.today().date()
-    start_date = datetime(today.year, today.month, 1).date()  # Example: fixed start date (can be dynamic later)
-    day_of_challenge = (today - start_date).days + 1
-
-    if day_of_challenge < 1 or day_of_challenge > 30:
+    today = date.today()
+    if today < CHALLENGE_START or today > CHALLENGE_END:
         st.warning("This challenge is not currently active.")
         return
 
-    st.markdown(f"### Day {day_of_challenge} - {today.strftime('%B %d')}")
-    today_habits = get_habits_for_day(day_of_challenge)
+    day_of_challenge = (today - CHALLENGE_START).days + 1
+    today_habits = get_habits_for_date(today)
 
-    # Get current habits logged for today (if any)
+    st.markdown(f"### Day {day_of_challenge}: {today.strftime('%B %d, %Y')}")
+    st.markdown("Check off the habits you completed today:")
+
+    # Get current data
     existing_df = get_user_progress(user_id)
     existing_today = existing_df[existing_df["Date"] == pd.to_datetime(today)]
 
-    # Habit checkboxes
-    st.markdown("#### Select completed habits for today:")
-    completed = []
+    completed_today = []
     for habit in today_habits:
-        default = False
-        if not existing_today.empty and habit in existing_today["Completed Habits"].iloc[0]:
-            default = True
-        if st.checkbox(habit, value=default):
-            completed.append(habit)
+        default = habit in (existing_today["Completed Habits"].iloc[0] if not existing_today.empty else [])
+        if st.checkbox(habit, value=default, key=habit):
+            completed_today.append(habit)
 
     if st.button("Submit Today's Habits"):
-        save_user_habits(user_id, today, completed)
+        save_user_habits(user_id, today, completed_today)
         st.success("Habits saved!")
         st.experimental_rerun()
 
-    # Display past logs
+    # Display Adherence Pie Chart
     st.markdown("---")
-    st.markdown("### 🗂️ Your Habit History")
-    progress_df = get_user_progress(user_id)
+    st.markdown("### 📊 Your Progress So Far")
+    full_df = get_user_progress(user_id)
 
-    if not progress_df.empty:
-        st.dataframe(progress_df[::-1], use_container_width=True)
+    if not full_df.empty:
+        total_completed, total_possible = calculate_adherence(full_df)
+        percent = round(100 * total_completed / total_possible, 1) if total_possible > 0 else 0
+
+        fig, ax = plt.subplots()
+        ax.pie([total_completed, total_possible - total_completed],
+               labels=["Completed", "Missed"],
+               autopct="%1.1f%%",
+               startangle=90,
+               colors=["#4CAF50", "#FF5722"])
+        ax.axis("equal")
+        st.pyplot(fig)
+
+        st.markdown(f"**{total_completed} / {total_possible} habits completed** ({percent}%)")
     else:
-        st.info("No habit logs found yet.")
+        st.info("No habits logged yet. Start by submitting today's habits above.")
+
+    # Show historical logs
+    st.markdown("### 🗂️ Habit Log History")
+    if not full_df.empty:
+        st.dataframe(full_df[::-1], use_container_width=True)
+    else:
+        st.write("No habit logs yet.")
