@@ -17,7 +17,7 @@ def get_leaderboard_data():
             LIMIT 10;
         """)
         rows = cur.fetchall()
-    return pd.DataFrame(rows, columns=["Username", "Total Habits Completed"])
+    return pd.DataFrame(rows, columns=["Username", "Total"])
 
 def show_leaderboard():
     st.subheader("Top 10")
