@@ -118,28 +118,6 @@ def show_dashboard(user_id):
         st.success("Habits saved!")
         st.rerun()
 
-    # Pie Chart
-    st.markdown("---")
-    st.markdown("### 📊 Your Progress So Far")
-    full_df = get_user_progress(user_id)
-
-    if not full_df.empty:
-        total_completed, total_possible = calculate_adherence(full_df)
-        percent = round(100 * total_completed / total_possible, 1) if total_possible > 0 else 0
-
-        fig, ax = plt.subplots()
-        ax.pie([total_completed, total_possible - total_completed],
-               labels=["Completed", "Missed"],
-               autopct="%1.1f%%",
-               startangle=90,
-               colors=["#4CAF50", "#FF5722"])
-        ax.axis("equal")
-        st.pyplot(fig)
-
-        st.markdown(f"**{total_completed} / {total_possible} habits completed** ({percent}%)")
-    else:
-        st.info("No logs yet. Start submitting habits!")
-
     # Heatmap Calendar
     st.markdown("### 📅 Daily Completion Calendar")
 
