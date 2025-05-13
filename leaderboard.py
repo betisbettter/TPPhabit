@@ -20,7 +20,7 @@ def get_leaderboard_data():
     return pd.DataFrame(rows, columns=["Username", "Total Habits Completed"])
 
 def show_leaderboard():
-    st.subheader("🏆 Top 10 Most Consistent Members")
+    st.subheader("Top 10")
 
     df = get_leaderboard_data()
 
