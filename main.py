@@ -51,10 +51,12 @@ def signup():
             st.error(f"Registration failed: {e}")
 
 def main_menu():
-    with st.sidebar.expander("🏆 Leaderboard", expanded=False):
+    with st.expander("📆 Dashboard", expanded=True):
+        show_dashboard(st.session_state.user_id)
+
+    with st.expander("🏆 Leaderboard", expanded=False):
         show_leaderboard()
 
-    show_dashboard(st.session_state.user_id)
 
 def main():
   
