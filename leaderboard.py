@@ -33,7 +33,7 @@ def show_leaderboard():
 
     # Bar chart
     fig, ax = plt.subplots()
-    ax.barh(df["Username"], df["Total Habits Completed"], color="#4CAF50")
+    ax.barh(df["Username"], df["Total"], color="#4CAF50")
     ax.set_xlabel("Habits Completed")
     ax.invert_yaxis()
     st.pyplot(fig)
