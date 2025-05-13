@@ -145,6 +145,9 @@ def show_dashboard(user_id):
 
     calendar_series = get_daily_completion_df(user_id)
 
+    # Ensure index is datetime64[ns] (required by calplot)
+    calendar_series.index = pd.to_datetime(calendar_series.index)
+
     fig_cal, ax_cal = calplot.calplot(
         calendar_series,
         cmap="YlGn",
@@ -157,11 +160,12 @@ def show_dashboard(user_id):
         yearlabels=False,
         monthlabels=("May", "June"),
         daylabels="MTWTFSS",
-        figsize=(14, 3),
-        tight_layout=True
+        tight_layout=True,
+        figsize=(14, 3)
     )
 
     st.pyplot(fig_cal)
+
 
 
     # Historical Log Table
