@@ -7,10 +7,10 @@ CHALLENGE_END = date(2025, 6, 21)
 habit_list = [
     "Move your body for 30 min",
     "Mother's day",
-    "Track you workout",
+    "Track your workout",
     "Hit 7000 steps",
     "Take one form check video",
-    "Train a neglected body part"
+    "Train a neglected body part",
     "Stretch 10 min before bed",
     "10 min digestion walk",
     "Plan your meals for the week",
